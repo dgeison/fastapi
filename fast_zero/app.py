@@ -1,11 +1,13 @@
 from http import HTTPStatus
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from fast_zero.database import get_session
 from fast_zero.models import User
 from fast_zero.schemas import Message, UserDB, UserList, UserPublic, UserSchema
-from fast_zero.database import get_session
+
 app = FastAPI()
 
 database = []  # provisório para estudo
@@ -15,12 +17,13 @@ database = []  # provisório para estudo
 def read_root():
     return {'message': 'Olá Mundo!'}
 
+
 # OBS:
 # design video fastapi aula 5 prefiro olhar antes - anotação
 
+
 @app.post('/users/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
-def create_user(user: UserSchema):
-    session = get_session()
+def create_user(user: UserSchema, session=Depends(get_session)):
     db_user = session.scalar(
         select(User).where(
             (User.username == user.username) | (User.email == user.email)
@@ -51,8 +54,15 @@ def create_user(user: UserSchema):
 
 
 @app.get('/users/', response_model=UserList)
-def read_users():
-    return {'users': database}
+def read_users(
+    limit: int = 10,
+    skip: int = 0,
+    session: Session=Depends(get_session)
+    ):
+    user = session.scalars(
+        select(User).limit(limit).offset(skip)
+        )
+    return {'users': user}
 
 
 @app.put('/users/{user_id}', response_model=UserPublic)
