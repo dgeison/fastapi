@@ -1,9 +1,11 @@
 from http import HTTPStatus
 
 from fastapi import FastAPI, HTTPException
+from sqlalchemy import select
 
+from fast_zero.models import User
 from fast_zero.schemas import Message, UserDB, UserList, UserPublic, UserSchema
-
+from fast_zero.database import get_session
 app = FastAPI()
 
 database = []  # provisório para estudo
@@ -13,24 +15,39 @@ database = []  # provisório para estudo
 def read_root():
     return {'message': 'Olá Mundo!'}
 
+# OBS:
+# design video fastapi aula 5 prefiro olhar antes - anotação
 
 @app.post('/users/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
 def create_user(user: UserSchema):
-    """
-    Cria um novo usuário no banco de dados.
+    session = get_session()
+    db_user = session.scalar(
+        select(User).where(
+            (User.username == user.username) | (User.email == user.email)
+        )
+    )
 
-    Args:
-        user (UserSchema): O objeto UserSchema contendo os dados do usuário.
+    if db_user:
+        if db_user.username == user.username:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail='Nome de usuário já existe.',
+            )
+        elif db_user.email == user.email:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail='E-mail já cadastrado.',
+            )
 
-    Returns:
-        UserDB: O objeto UserDB criado e adicionado ao banco de dados.
-    """
+    db_user = User(
+        username=user.username, email=user.email, password=user.password
+    )
 
-    # breakpoint()
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
 
-    user_with_id = UserDB(id=len(database) + 1, **user.model_dump())
-    database.append(user_with_id)
-    return user_with_id
+    return db_user
 
 
 @app.get('/users/', response_model=UserList)
