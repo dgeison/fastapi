@@ -1,5 +1,7 @@
 from http import HTTPStatus
 
+from fast_zero.schemas import UserPublic
+
 
 def test_root_deve_retornar_ok_e_ola_mundo(client):
     response = client.get('/')  # Act
@@ -16,10 +18,8 @@ def test_create_user(client):
             'email': 'teste@teste.com',
         },
     )
-    # Validar UserPublic
 
     assert response.status_code == HTTPStatus.CREATED
-
     assert response.json() == {
         'id': 1,
         'username': 'test_user_name',
@@ -29,20 +29,17 @@ def test_create_user(client):
 
 def test_read_users(client):
     response = client.get('/users/')
-
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {
-        'users': [
-            {
-                'id': 1,
-                'username': 'test_user_name',
-                'email': 'teste@teste.com',
-            }
-        ]
-    }
+    assert response.json() == {'users': []}
 
 
-def test_update_user(client):
+def test_read_users_with_user(client, user):
+    user_schema = UserPublic.model_validate(user).model_dump()
+    response = client.get('/users/')
+    assert response.json() == {'users': [user_schema]}
+
+
+def test_update_user(client, user):
     response = client.put(
         '/users/1',
         json={
@@ -60,7 +57,7 @@ def test_update_user(client):
     }
 
 
-def test_delete_user(client):
+def test_delete_user(client, user):
     response = client.delete('/users/1')
 
     assert response.json() == {'message': 'Usuário deletado com sucesso.'}
