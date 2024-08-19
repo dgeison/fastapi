@@ -10,6 +10,7 @@ from fast_zero.models import User
 from fast_zero.schemas import Message, Token, UserList, UserPublic, UserSchema
 from fast_zero.security import (
     create_access_token,
+    get_current_user,
     get_password_hash,
     verify_password,
 )
@@ -24,7 +25,9 @@ def read_root():
 
 @app.get('/users/', response_model=UserList)
 def read_users(
-    limit: int = 10, skip: int = 0, session: Session = Depends(get_session)
+    limit: int = 10,
+    skip: int = 0,
+    session: Session = Depends(get_session),
 ):
     user = session.scalars(select(User).limit(limit).offset(skip))
     return {'users': user}
@@ -33,7 +36,10 @@ def read_users(
 # OBS:
 # design video fastapi aula 5 prefiro olhar antes de saltar - anotação 11:07
 @app.post('/users/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
-def create_user(user: UserSchema, session=Depends(get_session)):
+def create_user(
+    user: UserSchema,
+    session=Depends(get_session),
+):
     db_user = session.scalar(
         select(User).where(
             (User.username == user.username) | (User.email == user.email)
@@ -43,7 +49,7 @@ def create_user(user: UserSchema, session=Depends(get_session)):
     if db_user:
         if db_user.username == user.username:
             raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST, 
+                status_code=HTTPStatus.BAD_REQUEST,
                 detail='Nome de usuário já existe.',
             )
         elif db_user.email == user.email:
@@ -67,38 +73,58 @@ def create_user(user: UserSchema, session=Depends(get_session)):
 
 @app.put('/users/{user_id}', response_model=UserPublic)
 def update_user(
-    user_id: int, user: UserSchema, session: Session = Depends(get_session)
+    user_id: int,
+    user: UserSchema,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
 ):
-    db_user = session.scalar(select(User).where(User.id == user_id))
+    # tratado em get_current_user()
+    # # db_user = session.scalar(select(User).where(User.id == user_id))
 
-    if not db_user:
+    # if not db_user:
+    #     raise HTTPException(
+    #         status_code=HTTPStatus.NOT_FOUND,
+    #         detail='Usuário não encontrado.',
+    #     )
+
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail='Usuário não encontrado.',
+            status_code=400,
+            detail='Você não tem permissão para editar este usuário.',
         )
 
-    db_user.username = user.username
-    db_user.email = user.email
-    db_user.password = get_password_hash(user.password)
+    current_user.username = user.username
+    current_user.email = user.email
+    current_user.password = get_password_hash(user.password)
 
     # session.add(db_user)
     session.commit()
-    session.refresh(db_user)
+    session.refresh(current_user)
 
-    return db_user
+    return current_user
 
 
 @app.delete('/users/{user_id}', response_model=Message)
-def delete_user(user_id: int, session: Session = Depends(get_session)):
-    db_user = session.scalar(select(User).where(User.id == user_id))
+def delete_user(
+    user_id: int,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user),
+):
+    # db_user = session.scalar(select(User).where(User.id == user_id))
 
-    if not db_user:
+    # if not db_user:
+    #     raise HTTPException(
+    #         status_code=HTTPStatus.NOT_FOUND,
+    #         detail='Usuário não encontrado.',
+    #     )
+
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail='Usuário não encontrado.',
+            status_code=400,
+            detail='Você não tem permissão para editar este usuário.',
         )
 
-    session.delete(db_user)
+    session.delete(current_user)
     session.commit()
 
     return {'message': 'Usuário deletado com sucesso.'}
