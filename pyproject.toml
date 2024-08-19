@@ -2,7 +2,7 @@
 name = "fast-zero"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["Dgeison Peixoto <dgeison.peixoto@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -11,7 +11,7 @@ fastapi = "^0.111.0"
 sqlalchemy = "^2.0.31"
 pydantic-settings = "^2.3.4"
 alembic = "^1.13.2"
-
+pwdlib = {extras = ["argon2"], version = "^0.2.0"}
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.9"
@@ -21,15 +21,11 @@ taskipy = "^1.13.0"
 
 [tool.taskipy.tasks]
 run = 'fastapi dev fast_zero/app.py'
-
 pre_test = 'task lint'
 test = 'pytest -s -x --cov=fast_zero -vv'
 post_test = 'coverage html'
-
 lint = 'ruff check . && ruff check . --diff'
 format = 'ruff check . --fix && ruff format .'
-
-
 
 [tool.pytest.ini_options]
 pythonpath = "."
@@ -46,8 +42,6 @@ select = ['I', 'F', 'E', 'W', 'PL', 'PT']
 [tool.ruff.format]
 preview = true
 quote-style = "single"
-
-
 
 [build-system]
 requires = ["poetry-core"]

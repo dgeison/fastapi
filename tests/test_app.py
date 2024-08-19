@@ -14,8 +14,8 @@ def test_create_user(client):
         '/users/',
         json={
             'username': 'test_user_name',
-            'password': 'password',
             'email': 'teste@teste.com',
+            'password': 'password',
         },
     )
 
@@ -45,8 +45,8 @@ def test_update_user(client, user):
         json={
             'id': 1,
             'username': 'test_user_name_updated',
-            'password': 'password',
             'email': 'teste@teste.com',
+            'password': 'password',
         },
     )
 

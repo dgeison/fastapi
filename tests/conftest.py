@@ -44,7 +44,7 @@ def session():
     # with - gerenciamento de contexto
     # yield - retorna o valor e continua a execução
     with Session(engine) as session:
-        yield session
+        yield session  # arrange
 
     table_registry.metadata.drop_all(engine)
 
